@@ -1,0 +1,25 @@
+{
+    "manifest_version": 3,
+    "name": "Proxy Manager By AutoBot",
+    "version": "1.0.0",
+    "permissions": ["proxy", "webRequest", "webRequestAuthProvider", "storage"],
+    "host_permissions": ["<all_urls>"],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "content_scripts": [
+        {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"]
+        }
+    ],
+    "icons": {
+        "128": "images/on.png",
+        "48":  "images/on48.png",
+        "16":  "images/on16.png"
+    }
+}
+  
