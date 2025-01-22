@@ -1,6 +1,6 @@
 // background.js
 var calls = {};
-
+var listener
 function setProxyIcon() {
 
     var icon = {
@@ -21,6 +21,43 @@ function setProxyIcon() {
         }
     );
 }
+function createAuthListener(proxyConfig) {
+    return function onAuthRequiredListener(details) {
+        var idstr = details.requestId.toString();
+        if(details.isProxy === true){
+        
+            console.log('AUTH - ' + details.requestId);
+            //console.log(JSON.stringify(details));
+            if(!(idstr in calls)){
+                calls[idstr] = 0;
+            }
+            calls[idstr] = calls[idstr] + 1;
+            var retry = 10;
+    
+            if(calls[idstr] >= retry){
+                calls = {};
+                chrome.action.setIcon({
+                    path: "images/error.png",
+                })
+                return({
+                    cancel : true
+                });
+            }
+    
+            var login = proxyConfig.username;
+            var password = proxyConfig.password;
+            
+            if (login && password){
+                return({
+                    authCredentials : {
+                        'username' : login,
+                        'password' : password
+                    }
+                });
+            }
+        }
+    }
+}
 
 // Function to set proxy configuration
 async function setProxy(proxyConfig) {
@@ -36,7 +73,7 @@ async function setProxy(proxyConfig) {
                         host: proxyConfig.host,
                         port: parseInt(proxyConfig.port, 10)
                     },
-                    bypassList: ["<local>"]
+                    bypassList: ["<local>", ...proxyConfig.bypassList]
                 }
             },
             scope: "regular"
@@ -51,43 +88,9 @@ async function setProxy(proxyConfig) {
     );
 
     console.log(`Proxy URL with embedded credentials: ${proxyURL}`);
-
+    listener = createAuthListener(proxyConfig)
     chrome.webRequest.onAuthRequired.addListener(
-        function(details) {
-            var idstr = details.requestId.toString();
-            if(details.isProxy === true){
-            
-                console.log('AUTH - ' + details.requestId);
-                //console.log(JSON.stringify(details));
-                if(!(idstr in calls)){
-                    calls[idstr] = 0;
-                }
-                calls[idstr] = calls[idstr] + 1;
-                var retry = 10;
-
-                if(calls[idstr] >= retry){
-                    calls = {};
-                    chrome.action.setIcon({
-                        path: "images/error.png",
-                    })
-                    return({
-                        cancel : true
-                    });
-                }
-
-                var login = proxyConfig.username;
-                var password = proxyConfig.password;
-                
-                if (login && password){
-                    return({
-                        authCredentials : {
-                            'username' : login,
-                            'password' : password
-                        }
-                    });
-                }
-            }
-        },
+        listener,
         {urls: ["<all_urls>"]}, 
         ["blocking"]
     );
@@ -109,39 +112,15 @@ function clearProxy() {
     );
 
     // Optionally remove the authentication listener
-    chrome.webRequest.onAuthRequired.addListener(
-        function(details) {
-        
-            if(details.isProxy === true){
-            
-                console.log('AUTH - ' + details.requestId);
-                //console.log(JSON.stringify(details));
-                
-                
-                
-                var login = "user";
-                var password = "pass";
-                
-                if (login && password){
-                    return({
-                        authCredentials : {
-                            'username' : login,
-                            'password' : password
-                        }
-                    });
-                }
-            }
-        },
-        {urls: ["<all_urls>"]}, 
-        ["blocking"]
-    );
+    if(listener != undefined) chrome.webRequest.onAuthRequired.removeListener(listener);
 }
 
 // sessionStorage.setItem("autobot_setproxy",JSON.stringify({
 //     host: "gw.dataimpulse.com",
 //     port: "823",
 //     username: "46ccb803bc3dfbda6f16__cr.dz",
-//     password: "16780e6cd07e7cd8"
+//     password: "16780e6cd07e7cd8",
+//     bypassList: [],
 // }))
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -174,4 +153,7 @@ chrome.runtime.onInstalled.addListener(() => {
     }
   });
   
-setProxyIcon();
+chrome.storage.session.remove("proxy_status", () => {
+    clearProxy();
+    setProxyIcon()
+}); 

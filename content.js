@@ -1,8 +1,8 @@
 var checkIfsetProxy = function(){
     setTimeout(function(){
-        if(sessionStorage.getItem("autobot_setproxy") != 'undefined' && sessionStorage.getItem("autobot_setproxy") != null){
+        if(sessionStorage.getItem("autobot_setproxy") != null){
             var proxConfig = JSON.parse(sessionStorage.getItem("autobot_setproxy"))
-            sessionStorage.setItem("autobot_setproxy", undefined)
+            sessionStorage.removeItem("autobot_setproxy")
             console.log("communicating with bg.js")
             
             chrome.runtime.sendMessage({ action: "set_proxy",...proxConfig }, (response) => {
@@ -10,7 +10,7 @@ var checkIfsetProxy = function(){
               });
         }
         if(sessionStorage.getItem("autobot_stopproxy") == 'true'){
-            sessionStorage.setItem("autobot_stopproxy", 'false')
+            sessionStorage.removeItem("autobot_stopproxy")
             console.log("communicating with bg.js")
             chrome.runtime.sendMessage({ action: "clear_proxy" }, (response) => {
                 console.log("Response from background:", response);
@@ -18,10 +18,10 @@ var checkIfsetProxy = function(){
         }
 
         if(sessionStorage.getItem("autobot_proxy_status") == 'true'){
-            sessionStorage.setItem("autobot_proxy_status", 'false')
+            sessionStorage.removeItem("autobot_proxy_status")
             console.log("communicating with bg.js")
             chrome.runtime.sendMessage({ action: "proxy_status" }, (response) => {
-                console.log("Response from background:", response);
+                sessionStorage.setItem("autobot_prox_status", JSON.stringify(response));
               });
         }
 
