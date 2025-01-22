@@ -132,28 +132,44 @@ chrome.runtime.onInstalled.addListener(() => {
     console.log("Message received in background:", message);
   
     if(message.action === "set_proxy"){
-        chrome.storage.session.set({proxy_status:{ autobot_prox: message, autobot_isset:true }}, () => {
+        chrome.storage.local.set({proxy_status:{ autobot_prox: message, autobot_isset:true }}, () => {
             setProxy(message)
             setProxyIcon()
             sendResponse({ response: "proxy launched successfully!" });
         });    
         return true
     }else if(message.action === "clear_proxy"){
-        chrome.storage.session.remove("proxy_status", () => {
+        chrome.storage.local.remove("proxy_status", () => {
             clearProxy()
             setProxyIcon()
+            chrome.browsingData.remove({}, {
+                cookies: true,
+                cache: true,
+                history: true
+            }, () => {
+                console.log("Browsing data cleared.");
+            });
             sendResponse({ response: "proxy cleared successfully!" });
         }); 
         return true;
     }else if (message.action === "proxy_status"){
-        chrome.storage.session.get("proxy_status").then(function (res) {
+        chrome.storage.local.get("proxy_status").then(function (res) {
             sendResponse(res)
         })
         return true;
     }
   });
-  
-chrome.storage.session.remove("proxy_status", () => {
-    clearProxy();
-    setProxyIcon()
-}); 
+
+setProxyIcon()
+
+chrome.storage.local.get("proxy_status").then(function (res) {
+    if(Object.keys(res).length != 0){
+        var proxyConfig = (res.proxy_status.autobot_prox)
+        listener = createAuthListener(proxyConfig)
+        chrome.webRequest.onAuthRequired.addListener(
+            listener,
+            {urls: ["<all_urls>"]}, 
+            ["blocking"]
+        );
+    }
+})
