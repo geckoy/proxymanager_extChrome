@@ -144,7 +144,7 @@ chrome.runtime.onInstalled.addListener(() => {
             setProxyIcon()
             chrome.browsingData.remove({}, {
                 cookies: true,
-                cache: true,
+                cache: false,
                 history: true
             }, () => {
                 console.log("Browsing data cleared.");
